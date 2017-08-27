@@ -1,0 +1,40 @@
+{
+  "preferGlobal": true,
+  "name": "ghbackup",
+  "version": "1.0.0",
+  "description": "Back up ALL your GitHub repositories.",
+  "main": "bin/ghbackup.js",
+  "bin": {
+    "ghbackup": "bin/ghbackup.js"
+  },
+  "scripts": {
+    "test": "semistandard"
+  },
+  "dependencies": {
+    "github": "10.0.0",
+    "yargs": "8.0.2"
+  },
+  "devDependencies": {
+    "semistandard": "11.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/aluxian/node-ghbackup.git"
+  },
+  "keywords": [
+    "github",
+    "backup",
+    "repositories",
+    "archive",
+    "github.com",
+    "back",
+    "up",
+    "back-up"
+  ],
+  "author": "Alexandru Rosianu <me@aluxian.com> (https://www.aluxian.com)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/aluxian/node-ghbackup/issues"
+  },
+  "homepage": "https://github.com/aluxian/node-ghbackup#readme"
+}
