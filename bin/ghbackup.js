@@ -24,10 +24,10 @@ main().catch(err => {
 });
 
 async function main () {
-  log('collecting repositories ...');
+  log('collecting repositories...');
   const repos = await collectAll();
 
-  log('cloning ' + repos.length + ' repositories ...');
+  log('cloning ' + repos.length + ' repositories...');
   const success = await cloneAll(repos);
 
   if (success) {
