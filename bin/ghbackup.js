@@ -10,6 +10,7 @@ const argv = yargs
   .option('visibility', {choices: ['all', 'public', 'private']})
   .option('affiliation', {choices: ['owner', 'collaborator', 'organization_member']})
   .option('type', {choices: ['all', 'owner', 'public', 'private', 'member']})
+  .option('mirror', {describe: 'Pass --mirror to git clone', default: false})
   .help()
   .argv;
 
@@ -66,11 +67,13 @@ async function cloneAll (repos) {
   for (const repo of repos) {
     log('=== ' + repo.full_name + ' ===');
 
-    const cloned = await git(['clone', repo.ssh_url, repo.full_name], {stdio: 'inherit'});
-    if (!cloned) return false;
-
-    const pulled = await git(['pull', '--all'], {cwd: repo.full_name, stdio: 'inherit'});
-    if (!pulled) return false;
+    if (argv.mirror) {
+      const cloned = await git(['clone', '--mirror', repo.ssh_url, repo.full_name + '.git'], {stdio: 'inherit'});
+      if (!cloned) return false;
+    } else {
+      const cloned = await git(['clone', repo.ssh_url, repo.full_name], {stdio: 'inherit'});
+      if (!cloned) return false;
+    }
   }
 
   return true;
