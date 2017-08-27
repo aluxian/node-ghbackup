@@ -11,6 +11,7 @@
     "test": "semistandard"
   },
   "dependencies": {
+    "chalk": "2.1.0",
     "github": "10.0.0",
     "yargs": "8.0.2"
   },

@@ -1,64 +1,90 @@
 #!/usr/bin/env node
-const argv = require('yargs')
-  .option('username', {required: true, describe: 'GitHub username'})
-  .option('token', {required: true, describe: 'GitHub personal access token'})
+
+const cp = require('child_process');
+const chalk = require('chalk');
+const yargs = require('yargs');
+const GitHub = require('github');
+
+const argv = yargs
+  .option('accessToken', {describe: 'Personal access token', required: true})
+  .option('visibility', {choices: ['all', 'public', 'private']})
+  .option('affiliation', {choices: ['owner', 'collaborator', 'organization_member']})
+  .option('type', {choices: ['all', 'owner', 'public', 'private', 'member']})
   .help()
   .argv;
 
-const github = new (require('github'))();
-github.authenticate({type: 'token', token: argv.token});
+const github = new GitHub({Promise});
+github.authenticate({type: 'token', token: argv.accessToken});
 
-console.log('   ===   collecting repositories ...');
-collectAll(function (repos) {
-  console.log('   ===   cloning %i repositories ...', repos.length);
-  cloneAll(repos, function () {
-    console.log('   ===   backup done');
+main().catch(err => {
+  setTimeout(() => {
+    throw err;
   });
 });
 
-function collectAll (callback) {
-  let repos = [];
-  let page = 1;
+async function main () {
+  log('collecting repositories ...');
+  const repos = await collectAll();
 
-  function reposCallback (err, res) {
-    if (err) throw err;
+  log('cloning ' + repos.length + ' repositories ...');
+  const success = await cloneAll(repos);
 
-    repos = repos.concat(res.data);
-    console.log('   ===   collected page %i', page);
-
-    if (github.hasNextPage(res)) {
-      page++;
-      github.getNextPage(res, reposCallback);
-    } else {
-      callback(repos);
-    }
+  if (success) {
+    log('backup complete');
+  } else {
+    log('backup failed');
   }
-
-  github.repos.getAll({per_page: 100}, reposCallback);
 }
 
-function cloneAll (repos, callback) {
-  let i = 0;
+async function collectAll () {
+  const opts = {
+    per_page: 100
+  };
 
-  function clone () {
-    if (!repos[i]) {
-      return callback();
-    }
+  if (argv.visibility) opts.visibility = argv.visibility;
+  if (argv.affiliation) opts.affiliation = argv.affiliation;
+  if (argv.type) opts.type = argv.type;
 
-    console.log();
-    const cp = require('child_process');
-    const git = cp.spawn('git', ['clone', '--all', repos[i].ssh_url], {stdio: 'inherit'});
+  let res = await github.repos.getAll(opts);
+  let repos = [].concat(res.data);
 
-    git.on('close', function (code) {
-      if (code === 0) {
-        i++;
-        clone();
-      } else {
-        console.log();
-        process.exitCode = 1;
-      }
-    });
+  let page = 1;
+  log('collected page ' + page);
+
+  while (github.hasNextPage(res)) {
+    res = await github.getNextPage(res);
+    repos = repos.concat(res.data);
+
+    page++;
+    log('collected page ' + page);
   }
 
-  clone();
+  return repos;
+}
+
+async function cloneAll (repos) {
+  for (const repo of repos) {
+    log('=== ' + repo.full_name + ' ===');
+
+    const cloned = await git(['clone', repo.ssh_url, repo.full_name], {stdio: 'inherit'});
+    if (!cloned) return false;
+
+    const pulled = await git(['pull', '--all'], {cwd: repo.full_name, stdio: 'inherit'});
+    if (!pulled) return false;
+  }
+
+  return true;
+}
+
+function git (args, opts) {
+  return new Promise((resolve, reject) => {
+    cp.spawn('git', args, opts).on('close', (code) => {
+      process.exitCode = code;
+      resolve(code === 0);
+    });
+  });
+}
+
+function log (msg) {
+  console.log(chalk.green(msg));
 }
